@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <link rel="stylesheet" href="./css/style.css"> -->
+    <title>Document</title>
+    <style>
+        .containerRow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 15px;
+            flex-wrap: wrap;
+            background: #eee;
+        }
+
+        .itemOrder {
+            margin-left: 10px;
+        }
+
+
+        .shippingaddres {
+            display: flex;
+            justify-content: flex-start;
+            flex-direction: column;
+            width: 100%;
+            background: #eee;
+            margin-top: 10px;
+        }
+
+        .image {
+            width: 50px;
+            height: 50px;
+            border-radius: 27%;
+        }
+
+        .center {
+
+
+            text-transform: capitalize;
+            color: rgba(255, 59, 47, 0.52);
+            font-size: 18px;
+        }
+
+        .container {
+            border-radius: 10px;
+            box-shadow: 0rem 0rem 0.1rem 0.1rem rgba(255, 59, 47, 0.52);
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            flex-wrap: wrap;
+        }
+
+        .item {
+            width: 100px;
+            text-transform: capitalize;
+            text-align: center;
+            font-family: monospace;
+            margin-left: 4px;
+        }
+
+        .shippingaddres ul {
+            list-style: none;
+            text-transform: capitalize;
+            flex-direction: column;
+            display: flex;
+            width: 100%;
+            justify-content: flex-start;
+            align-items: flex-start;
+            padding: 0rem;
+            margin: 0rem;
+
+        }
+
+
+        .firstname {
+            color: rgba(255, 59, 47, 0.52);
+            text-transform: capitalize;
+            font-weight: bold;
+            font-family: monospace;
+            margin-left: 10px;
+        }
+
+        li {
+            font-weight: bold;
+            font-family: fantasy;
+            margin-top: 1px;
+            margin-bottom: 1px;
+        }
+    </style>
+</head>
+
+<body>
+
+
+
+
+
+
+    <div class="containerRow">
+        <h1 class="center">my order</h1>
+        <span class="itemOrder"># <%=  data._id %></span>
+    </div>
+
+
+    <h1 class="center">pay payment </h1>
+    <div class='shippingaddres'>
+       
+        <ul>
+            <li>status : <%= data.OrderStatus %></li>
+            <li>pay pament : <%= data.paymentMethod  %> </li>
+
+        </ul>
+    </div>
+
+
+    <h1 class="center">my Address</h1>
+    <div class='shippingaddres'>
+        
+        <ul>
+            <li>Addres : <%= data.shippingAdress[0].yourAddress    %></li>
+            <li>City : <%= data.shippingAdress[0].city    %></li>
+            <li>zip cod : <%= data.shippingAdress[0].zipCode    %></li>
+            <li>telephone : +<%= data.shippingAdress[0].telephone    %></li>
+        </ul>
+    </div>
+
+
+
+    <% data.orderitems.forEach(function(item) { %>
+    
+    <div class="container" key="<%= item._id %>">
+         
+        <div>
+            <img class="image"
+                src='https://image.shutterstock.com/image-photo/winding-gravel-road-through-sunny-260nw-1033565986.jpg' />
+        </div>
+
+        <div class="firstname">
+            <span class="item">name : <%=  item.product.name %></span>
+            <span class="item">price :<%= item.product.prics %> </span>
+            <span class="item"> qty : <%=  item.qty %> </span>
+        </div>
+    </div>
+
+
+    <% }); %> 
+
+
+
+
+    <h1 class="center">total</h1>
+    <div class='shippingaddres'>
+       
+        <ul>
+          
+            <li>totle : <%= data.itemsPrics %></li>
+        </ul>
+    </div>
+
+
+
+</body>
+
+</html>
