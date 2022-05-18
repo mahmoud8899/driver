@@ -8,6 +8,7 @@ export default function Input(props) {
         AddStyles,
         placeholder,
         onChangeText,
+        value
     } = props
 
 
@@ -19,6 +20,7 @@ export default function Input(props) {
             placeholder={placeholder}
             onChangeText={onChangeText}
             // placeholderTextColor='black'
+            value={value}
         />
 
     </View>
