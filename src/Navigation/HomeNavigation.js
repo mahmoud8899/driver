@@ -5,6 +5,7 @@ import LoginScrren from '../Pages/LoginScreen/LoginScreen'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 import HomeScrren from '../Pages/HomeScreen/HomeScreen'
 import ProfileNavigation from './ProfileNavigation'
+import Auth from './AuthNavigation'
 
 
 
@@ -40,18 +41,16 @@ export default function HomeNavigation() {
 
     >
 
-
+        <Tab.Screen name='Home' component={Auth} options={{
+            headerShown: false
+        }} />
         <Tab.Screen name='Profile' component={ProfileNavigation} options={{
             headerShown: false
         }} />
 
-<Tab.Screen name='Home' component={HomeScrren} options={{
-            headerShown: false
-        }} />
 
-        {/* <Tab.Screen name='Profile' component={LoginScrren} options={{
-            headerShown: false
-        }} /> */}
+
+
 
     </Tab.Navigator>
 }

@@ -8,7 +8,8 @@ export default function Input(props) {
         AddStyles,
         placeholder,
         onChangeText,
-        value
+        value,
+        secureTextEntry,
     } = props
 
 
@@ -19,6 +20,7 @@ export default function Input(props) {
             style={AddStyles ? AddStyles : Styles.input}
             placeholder={placeholder}
             onChangeText={onChangeText}
+            secureTextEntry={secureTextEntry}
             // placeholderTextColor='black'
             value={value}
         />

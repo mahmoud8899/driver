@@ -3,10 +3,10 @@ import React from 'react'
 import { ScaledSheet } from 'react-native-size-matters';
 
 export default function ButtonComponent(props) {
-    const { Title } = props
+    const { Title ,onPress} = props
 
 
-    return <TouchableOpacity style={Styles.Button}>
+    return <TouchableOpacity style={Styles.Button} onPress={onPress}>
         <Text style={Styles.textButton}
         > {Title}</Text>
     </TouchableOpacity>
@@ -18,7 +18,7 @@ const Styles = ScaledSheet.create({
     Button: {
         backgroundColor: 'black',
         height: '60@s',
-        marginTop: '30@s',
+        marginTop: '10@s',
         borderRadius : '4@s',
     },
     textButton: {

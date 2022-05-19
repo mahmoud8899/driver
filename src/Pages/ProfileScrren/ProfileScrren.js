@@ -3,12 +3,21 @@ import { View, Text ,TouchableOpacity } from 'react-native'
 import Icon from 'react-native-vector-icons/Ionicons'
 import Styles from './style'
 import ButtonComponent from '../../Components/Button/Button'
+import { USER_SAVE } from "../../Assistant/Types"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 export default function ProfileScreen(props) {
 
 
 
     // console.log('show me props :',props)
 
+
+    const LogOut = () =>{
+
+        console.log('User Log out...')
+
+        return AsyncStorage.removeItem(USER_SAVE)
+    }
 
     return <View style={Styles.container}>
         <View style={Styles.ImageContainer}>
@@ -61,7 +70,7 @@ export default function ProfileScreen(props) {
 
 
         <View style={Styles.Button}>
-            <ButtonComponent Title='log out' />
+            <ButtonComponent Title='log out' onPress={LogOut} />
         </View>
 
 
