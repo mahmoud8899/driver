@@ -166,14 +166,14 @@ exports.concalcaltion = async (req, res) => {
             let newSave = await order.save()
 
 
-            let deiver = await DriverModel.deleteOne({order : newSave._id, user : req.user._id})
-            if(deiver){
-                return res.json({message : 'Remove....'})
+            let deiver = await DriverModel.deleteOne({ order: newSave._id, user: req.user._id })
+            if (deiver) {
+                return res.json({ message: 'Remove....' })
 
-            }else{
+            } else {
 
                 return res.status(404).json({
-                    message : 'we dont have some order id....'
+                    message: 'we dont have some order id....'
                 })
             }
 
@@ -220,3 +220,114 @@ exports.ViewsAllDriversOrder = async (req, res) => {
     }
 }
 
+
+
+exports.testingConfirmOrder = async (req, res) => {
+
+
+    try {
+        let driver = await DriverModel.find({ user: req.user._id })
+            .populate({
+                path: 'order',
+                // select: '_id driverPric   isDelivered shippingAdress.yourAddress shippingAdress.zipCode OrderStatus orderitems',
+                populate: [
+                    { path: 'orderitems.product', select: '_id name' }, { path: 'cartinfo', select: '_id username' }
+                ]
+                // populate: {  }
+            })
+
+            .populate({ path: 'user', select: '_id username email' })
+        if (driver) return res.status(404).json(driver)
+
+        return res.status(404).json({ message: 'not....' })
+    } catch (error) {
+
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+}
+
+
+
+// user Deliver order 
+exports.DeliverOrder = async (req, res) => {
+    try {
+
+        let driver = await DriverModel.find({ user: req.user._id, })
+            .populate({
+                path: 'order',
+                // select: '_id driverPrice   isDelivered shippingAdress.yourAddress shippingAdress.zipCode OrderStatus',
+                populate: [
+                    { path: 'cartinfo', select: '_id username location addressinfo' }
+                ]
+
+            })
+        const FilterSatatusDelivery = driver.filter((x) => x.order.OrderStatus === 'delivery')
+
+
+        if (FilterSatatusDelivery.length === Number(0)) {
+
+            return res.status(200).json('Emty')
+        }
+
+        return res.status(200).json(FilterSatatusDelivery)
+    } catch (error) {
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+}
+
+
+
+// other driver// 
+// OrderModel  -- drivertake
+
+exports.OrderDriver = async (req, res) => {
+
+    const pageSize = Number(5)
+    const page = Number(req.query.pageNumber) || 1
+    let count = await OrderModel.count(
+        {
+
+            drivertake: req.user._id,
+            OrderStatus: 'delivery'
+        })
+    const result = {}
+    if (page < count) {
+        result.next = {
+            page: page + 1,
+        }
+
+    }
+
+
+
+    try {
+        let order = await OrderModel.find({
+            drivertake: req.user._id,
+            OrderStatus: 'delivery'
+        }).select('orderTime shippingAdress driverPrice OrderStatus')
+            .populate({ path: 'cartinfo', select: '_id location addressinfo username' })
+            .limit(pageSize)
+            .skip(pageSize * (page - 1))
+
+
+        if (order) return res.status(200).json({
+            LengthProduct: count,
+            result,
+            pageNumber: page,
+            pages: Math.ceil(count / pageSize),
+            data: order,
+
+        })
+
+        return res.status(200).json('Empty.....')
+    } catch (error) {
+
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+}

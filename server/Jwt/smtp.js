@@ -12,15 +12,17 @@ exports.main = async (dataform) => {
         host: process.env.USER_HOST,
         port: 587,
         auth: {
-            user: process.env.USERNAME, // generated ethereal user
-            pass: process.env.USER_PASSWORD, // generated ethereal password
+            user: process.env.USERNAME, 
+            pass: process.env.USER_PASSWORD, 
         },
         tls: { rejectUnauthorized: false }
     });
 
 
-    const checkIn = dataform.client ? '/../views/myorder.ejs' : '/../views/forgetpassword.ejs'
-    const checnObject = dataform.client ? 'Confirm Order' : 'Forget Password !'
+    const checkIn = dataform.client ? 
+    '/../views/myorder.ejs' : 
+    dataform.work ? '/../views/work.ejs'  :'/../views/forgetpassword.ejs'
+    const checnObject = dataform.client ? 'Confirm Order' : dataform.work ?  'Driver work' : 'Forget Password !'
     ejs.renderFile(__dirname + checkIn, { data: dataform }, function (err, data) {
 
      

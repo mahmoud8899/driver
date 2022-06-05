@@ -11,8 +11,8 @@ const OrderSchema = mongoose.Schema({
 
 
     orderTime: {
-        type: String,
-        required: true,
+        time: { type: String },
+        today: { type: String },
     },
     orderitems: [
         {
@@ -25,13 +25,16 @@ const OrderSchema = mongoose.Schema({
         }
     ],
     shippingAdress: {
-        firstName: { type: String, required: true },
-        lastName: { type: String, required: true },
-        yourEmail: { type: String, required: true },
-        yourAddress: { type: String, required: true },
-        city: { type: String, required: true },
-        zipCode: { type: String, required: true },
-        telephone: { type: String, required: true },
+
+
+        firstname: { type: String,  },
+        lastname: { type: String,  },
+        yourEmail: { type: String,  },
+        homeNumber: { type: String, },
+        yourAddress: { type: String,  },
+        city: { type: String,  },
+        zipCode: { type: String,  },
+        telephone: { type: String, },
     },
 
 
@@ -39,7 +42,7 @@ const OrderSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    itemsPrics: {
+    itemsPrices: {
         type: Number,
         required: true,
         default: 0.0
@@ -68,7 +71,7 @@ const OrderSchema = mongoose.Schema({
         type: String,
         required: true,
     },
-    driverPric: {
+    driverPrice: {
         type: Number,
         required: true,
         default: 0.0
@@ -90,7 +93,11 @@ const OrderSchema = mongoose.Schema({
         ref: 'Cartinfo',
         required: true
     },
-
+    areportcancel: {
+        whois: { type: String, },
+        why: { type: String, },
+        date: { type: Date }
+    }
 
 }, {
     timestamps: true

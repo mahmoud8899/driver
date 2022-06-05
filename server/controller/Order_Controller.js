@@ -15,18 +15,22 @@ const { main } = require('../Jwt/smtp')
 
 // orders restranges
 // notifications max 10 order some last....
+// testing...
 exports.TheRestrangesOrders = async (req, res) => {
 
 
     try {
-        let order = await OrderModel.find({ cartinfo: req.params.cartinfo })
-        .populate({path :'orderitems.product', select : '_id name prices'})
+        let order = await OrderModel.find({ cartinfo: req.params.cartinfo, OrderStatus: 'processing' })
+            .populate({ path: 'orderitems.product', select: '_id name prices' })
             .sort({ createdAt: -1 })
             .limit(4)
 
-        if (order) return res.status(200).json(order)
+        if (order.length > 0) return res.status(200).json(order)
 
-        return res.status(404).json({ message: 'Empty order just new.' })
+
+
+
+        return res.status(200).json('Empty')
 
     } catch (error) {
 
@@ -48,7 +52,8 @@ exports.TheRestrangesOrders = async (req, res) => {
 // POST..... 
 exports.CreateOrder = async (req, res) => {
 
-    const { orderTime, orderitems, shippingAdress, paymentMethod, itemsPrics, driver, driverPric, client, discountCode, cartinfo } = req.body
+
+    const { orderTime, orderitems, shippingAdress, paymentMethod, itemsPrices, driver, driverPrice, client, discountCode, cartinfo } = req.body
     try {
 
         let newOrder = new OrderModel({
@@ -57,10 +62,10 @@ exports.CreateOrder = async (req, res) => {
             orderitems,
             shippingAdress,
             paymentMethod,
-            itemsPrics,
+            itemsPrices,
             OrderStatus: 'processing',
             driver,
-            driverPric,
+            driverPrice,
             client,
             discountCode,
             cartinfo
@@ -70,7 +75,7 @@ exports.CreateOrder = async (req, res) => {
         const newSaveOrder = await newOrder.save()
 
         // send confirm email....
-        await main(newSaveOrder)
+        // await main(newSaveOrder)
         return res.status(201).json(newSaveOrder)
 
 
@@ -128,18 +133,10 @@ exports.ShowOrderId = async (req, res) => {
 // show all order to  user...  
 // View all requests to the user
 exports.ordershowUserid = async (req, res) => {
-
-
-
     const pageSize = Number(5)
-
-
     const page = Number(req.query.pageNumber) || 1
-
     let count = await OrderModel.countDocuments({ user: req.user._id })
-
     const result = {}
-
     if (page < count) {
         result.next = {
             page: page + 1,
@@ -154,6 +151,7 @@ exports.ordershowUserid = async (req, res) => {
             .populate({ path: 'orderitems.product', select: '_id  name prices' })
             .limit(pageSize)
             .skip(pageSize * (page - 1))
+            .sort({ createdAt: -1 })
         if (order) {
 
 
@@ -278,18 +276,14 @@ exports.AddSearch = async (req, res) => {
 // GET // /order/view/all/order/
 exports.ViewAllOrders = async (req, res) => {
 
+    if (!Object.isValid(req.params.cartinfo)) return res.status(404).json({ message: `not id ${req.params.id}` })
+
+
     const pageSize = Number(5)
 
-    const keyword = req.query.keyword ? {
-        name: {
-            $regex: req.query.keyword,
-            $options: 'i',
-        },
-
-    } : {}
     const page = Number(req.query.pageNumber) || 1
 
-    let count = await OrderModel.countDocuments({ cartinfo : req.params.cartinfo, ...keyword })
+    let count = await OrderModel.countDocuments({ cartinfo: req.params.cartinfo })
 
     const result = {}
 
@@ -305,7 +299,7 @@ exports.ViewAllOrders = async (req, res) => {
     try {
 
 
-        let order = await OrderModel.find({ cartinfo : req.params.cartinfo,  ...keyword })
+        let order = await OrderModel.find({ cartinfo: req.params.cartinfo })
             .populate({ path: 'user', select: '_id username isAdmin' })
             .populate({ path: 'orderitems.product', select: '_id image name prics' })
             .limit(pageSize)
@@ -334,4 +328,107 @@ exports.ViewAllOrders = async (req, res) => {
 
 
 
+}
+
+
+
+
+// cancel order from User or restaurant
+// private 
+// PUT
+exports.CancelOrder = async (req, res) => {
+    if (!Object.isValid(req.params.id && req.user._id)) return res.status(404).json({ message: 'id' })
+    try {
+
+
+
+        let order = await OrderModel.findOne({ _id: req.params.id })
+
+        if (order.user.toString() === req.user._id.toString() ||
+            order.cartinfo.toString() === req.user.cartinfo.toString()
+        ) {
+            // check who is cancel order
+            const theCheckCancel = order.user.toString() === req.user._id.toString() ? 'user' : 'restaurant'
+
+            const theareportcancel = {
+                whois: theCheckCancel,
+                why: req.body.why,
+                date: new Date()
+            }
+            const theCancel = 'cancel'
+
+            order.OrderStatus = theCancel
+            order.areportcancel = theareportcancel
+            let newSaveCancel = await order.save()
+
+
+
+            return res.status(201).json({
+                message: 'successfully',
+                newSaveCancel
+            })
+
+        } else {
+            return res.status(404).json({
+                message: 'no'
+            })
+        }
+    } catch (error) {
+        return res.status(404).json({ message: error.message })
+    }
+}
+
+
+
+exports.TestOrder = async (req, res) => {
+    try {
+
+        let order = await OrderModel.find({ user: req.user._id })
+        // .populate({ path: 'user', select: '_id username isAdmin' })
+        // .populate({ path: 'orderItems.product', select: '_id image name prics' })
+        return res.status(200).json(order)
+    } catch (error) {
+
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+}
+
+
+
+
+
+
+// test order //utkörning
+exports.OrderTest = async (req, res) => {
+
+
+    try {
+        let order = await OrderModel.find({ OrderStatus: 'delivery', driver: 'utkörning' })
+
+        if (order) return res.status(200).json(order)
+        return res.status(404).json('empty')
+    } catch (error) {
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+}
+
+
+// check available order
+exports.CheckOrderAvailble = async (req, res) => {
+    try {
+        let order = await OrderModel.findById({ _id: req.params.id })
+        if (order.OrderStatus === 'processing') return res.status(200).json('processing')
+        if (order.OrderStatus === 'confirm') return res.status(200).json('confirm')
+        if (order.OrderStatus === 'your order on the way') return res.status(200).json('your order on the way')
+        if (order.OrderStatus === 'delivery') return res.status(200).json('delivery')
+        if (order.OrderStatus === 'cancel') return res.status(200).json('cancel')
+    } catch (error) {
+        return res.status(404).json({
+            message: error.message
+        })
+    }
 }

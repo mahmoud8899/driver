@@ -1,19 +1,35 @@
 const Category = require('../model/Category')
-
+const Object = require('mongoose').Types.ObjectId
 
 
 // create Category ... 
 // POST
-exports.createGategory = async (req, res) => {
+exports.CreateGategory = async (req, res) => {
+    if (!Object.isValid(req.body.cartinfo)) return res.status(404).json({ message: 'id is valid...' })
     const { name, cartinfo } = req.body
     try {
+
+        let newCheckCategory = await Category.findOne({ name: name.trim(), cartinfo: cartinfo })
+        if (newCheckCategory) return res.status(404).json({ message: 'Du kan inte göra samma namn' })
+
+
+
         let category = new Category({
             name,
-            cartinfo
+            cartinfo,
+            user: req.user._id
         })
 
         const saveCategory = await category.save()
-        return res.json(saveCategory)
+        return res.status(201).json({
+            message: 'create new Category',
+            saveCategory
+        })
+
+
+
+
+
     } catch (error) {
         return res.status(404).json({
             message: error.message
@@ -21,19 +37,32 @@ exports.createGategory = async (req, res) => {
     }
 }
 
-//  All Category...
-// GET
-exports.GetallCategory = async (req, res) => {
 
-    // const { Restaurantname ,RestaurantCity} = req.body
+
+//  All Category...
+// GET to restrant
+exports.FatchcategoryUser = async (req, res) => {
+    try {
+
+        let theCategory = await Category.find({ user: req.user._id })
+        if (theCategory.length > 0) return res.status(200).json(theCategory)
+
+        return res.status(200).json('Empty')
+    } catch (error) {
+        return res.status(404).json({ message: error.message })
+    }
+}
+
+
+
+//  All Category...
+// GET // testing loading error this is okej from client...
+exports.GetallCategory = async (req, res) => {
     try {
 
         let theCategory = await Category.find({ cartinfo: req.params.cartinfo })
-        if (theCategory) {
-            return res.status(200).json(theCategory)
-        }
-
-        return res.status(200).json('not category not.....')
+        if (theCategory) return res.status(200).json(theCategory)
+        return res.status(404).json('not category not.....')
 
     } catch (error) {
         return res.status(404).json({ message: error.message })
@@ -46,13 +75,14 @@ exports.GetallCategory = async (req, res) => {
 // delete Category ... 
 exports.deleteCategory = async (req, res) => {
 
+    if (!Object.isValid(req.params.id)) return res.status(404).json({ message: 'id is valid...' })
 
     try {
-        let categoryRemove = await Category.findByIdAndDelete({ _id: req.params.id })
+        let categoryRemove = await Category.deleteOne({ _id: req.params.id })
 
 
 
-        if (categoryRemove) return res.json({ message: 'Remove Category...' })
+        if (categoryRemove) return res.status(201).json({ message: 'Remove Category...' })
 
 
         return res.status(404).json({
@@ -72,14 +102,18 @@ exports.deleteCategory = async (req, res) => {
 
 
 // update category... 
+// PUT 
 exports.Updateingcategory = async (req, res) => {
-    const { name, description } = req.body
-
+    if (!Object.isValid(req.body.cartinfo)) return res.status(404).json({ message: 'id is valid...' })
+    const { name, cartinfo } = req.body
     try {
 
-        let category = await Category.updateOne({ _id: req.params.id }, { name, description })
+        let newCheckCategory = await Category.findOne({ name: name.trim(), cartinfo: cartinfo })
+        if (newCheckCategory) return res.status(404).json({ message: 'Du kan inte göra samma namn' })
 
-        if (category) return res.json(category)
+        let category = await Category.updateOne({ _id: req.params.id }, { $set: req.body })
+
+        if (category) return res.status(201).json({ message: 'Updated Category' })
 
         return res.status(404).json('not update.....')
 
@@ -91,63 +125,16 @@ exports.Updateingcategory = async (req, res) => {
 
 
 
+exports.testcategoryall = async (req, res) => {
 
+    try {
 
+        let caategory = await Category.find({})
 
+        return res.status(200).json(caategory)
 
+    } catch (error) {
 
-// let thecategory = await Category.find({ Cartinfo: req.params._id })
-//     .populate({ path: 'cartinfo', select: 'username _id addressinfo' })
-// const filterItmes = thecategory?.filter((u) => u?.cartinfo?.username === Restaurantname && u?.cartinfo?.addressinfo?.city === RestaurantCity)
-// if (filterItmes.length >= 1) {
-//     return res.status(200).json(filterItmes)
-// }
-// return res.status(200).json('no data')
-// // return res.status(201).json('message')
-
-
-
-
-
-// if (thecategory) {
-
-//   const { search } = req.body
-
-//     const xps = await Category.find({ 'cartinfo.username': 'uppsala food' })
-
-//     if (xps) {
-
-//         return res.status(200).json(xps)
-
-//     } else {
-//         return res.status(404).json('vo')
-//     }
-
-// }
-// let category = await Category.find({})
-//     .populate({ path: 'cartinfo', select: 'username _id' })
-
-// // if (category) {
-// //      let newCategory = await Category.find({"cartinfo._id"})
-
-// //     if (newCategory) return res.status(201).json(newCategory)
-
-// //     return res.json('no')
-
-
-// // }
-
-// if (category) return res.status(200).json(category)
-// return res.status(201).json({ message: 'not category....' })
-
-
-// const basePath = `${req.protocol}://${req.get('host')}/uploads/`;
-// const file = req.file
-// let checkName = await Category.findOne({ name })
-// if (checkName) {
-//     return res.status(404).json({ message: 'we  have the same name' })
-// } else {
-//                 if (!file) return res.status(404).json({
-//             message: 'not uploading Image...'
-//         })
-//         const fileName = file.filename;
+        return res.status(404).json({ message: error.message })
+    }
+}

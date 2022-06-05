@@ -1,28 +1,180 @@
 const CartInfoModel = require('../model/CartInfoModel')
 const Object = require('mongoose').Types.ObjectId
-const fs = require('fs')
-// Create new restarange...
-// POST   
-exports.CreateNewRes = async (req, res) => {
-    const {
-        username,
-        image,
-        opentime,
-        addressinfo,
-        description,
-        finishfood,
-        productType,
-        foodType
-    } = req.body
+const UpdateImage = require('./RemoveImage')
+const UserModel = require('../model/AuthUser')
 
-    if (username.startsWith(" ") || username.endsWith(" ")) return res.status(404).json({ message: 'remove ' })
+
+// restaurant id
+exports.RestaurantID = async (req,res)=>{
+
+    try{
+        let cartinfo = await CartInfoModel.findById({_id : req.params.id})
+
+        if(cartinfo) return res.status(200).json(cartinfo)
+
+        return res.status(404).json({message : 'we dont have id'})
+    }catch(error){
+
+        return res.status(404).json({
+            message : error.message
+        })
+         
+    }
+} 
+
+
+// location: {
+//     $nearSphere: {
+//         $geometry: {
+//             type: 'Point',
+//             coordinates: [59.8623448,17.6240537]
+//         },
+//         $maxDistance: 10 * 1609.34
+//     }
+// }
+
+
+// mpas location 
+// testing.....
+exports.LocationMpas = async (req, res) => {
+    try {
+        const cart = await CartInfoModel.find({
+            location: {
+                $nearSphere: {
+                    $geometry: {
+                        type: 'Point',
+                        coordinates: [req.params.lat, req.params.long]
+                    },
+                    $maxDistance: 10 * 1609.34
+                }
+            }
+        })
+
+
+        if (cart) return res.status(200).json(cart)
+        // return res.status(200).json({ message: 'not matching', cart })
+
+    } catch (error) {
+
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+}
+
+// filter restrange with category
+// get //
+exports.FilterRestranges = async (req, res) => {
+
+    const keyword = req.query.keyword
+        ? {
+            username: {
+                $regex: req.query.keyword,
+                $options: 'i',
+            },
+        }
+        : {}
+    const pageSize = Number(5)
+    const page = Number(req.query.pageNumber) || 1
+    let count = await CartInfoModel.count(
+        {
+            ...keyword,
+            location: {
+                $nearSphere: {
+                    $geometry: {
+                        type: 'Point',
+                        coordinates: [req.params.lat, req.params.long]
+                    },
+                    $maxDistance: 10 * 1609.34
+                }
+            },
+        })
+    const result = {}
+    if (page < count) {
+        result.next = {
+            page: page + 1,
+        }
+
+    }
+
 
     try {
 
 
-        let cartitems = await CartInfoModel.findOne({ username })
+        let cartitems = await CartInfoModel.find(
+            {
+                ...keyword,
+                location: {
+                    $nearSphere: {
+                        $geometry: {
+                            type: 'Point',
+                            coordinates: [req.params.lat, req.params.long]
+                        },
+                        $maxDistance: 10 * 1609.34
+                    }
+                },
+            })
+            .populate({ path: 'foodtype', select: '_id foodType' })
+            .limit(pageSize)
+            .skip(pageSize * (page - 1))
+
+
+
+        return res.status(200).json({
+            LengthProduct: count,
+            result,
+            pageNumber: page,
+            pages: Math.ceil(count / pageSize),
+            data: cartitems, 
+        })
+
+
+
+
+
+
+
+
+
+
+    } catch (error) {
+
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+}
+
+
+// get cart info to user
+// Private GET
+exports.CartInfoIDUser = async (req, res) => {
+    try {
+        let cartitems = await CartInfoModel.findOne({ user: req.user._id })
+            .populate({ path: 'foodtype', select: '_id foodType' })
+
+
+        if (cartitems) return res.status(200).json(cartitems)
+        return res.status(200).json('Empty')
+
+    } catch (error) {
+        return res.status(404).json({ message: error.message })
+    }
+}
+
+// Create new restarange...
+// Private POST
+exports.CreateNewRes = async (req, res) => {
+    const { username, image, opentime, addressinfo, description, finishfood, productType, foodtype, location } = req.body
+    try {
+        let cartitems = await CartInfoModel.findOne({ user: req.user._id })
+
+        if (cartitems) return res.status(404).json({ message: 'not Create' })
+
         if (!cartitems) {
 
+            let SomeName = await CartInfoModel.findOne({ username: username })
+            if (SomeName) return res.status(404).json({ message: 'We Have some name' })
             let cartitems = new CartInfoModel({
                 user: req.user._id,
                 username,
@@ -32,17 +184,22 @@ exports.CreateNewRes = async (req, res) => {
                 description,
                 finishfood,
                 productType,
-                foodType
+                foodtype,
+                location
             })
 
-            const newSave = await cartitems.save()
+            const SaveCartInfo = await cartitems.save()
+            // add user some _id 
+            let usermodel = await UserModel.findOne({ _id: req.user._id })
+            if (usermodel) {
+                usermodel.cartinfo = SaveCartInfo._id
+                await usermodel.save()
+                return res.status(201).json({ message: 'successFully' })
+            }
 
-            return res.status(201).json(newSave)
+
         }
 
-        return res.status(200).json({
-            message: 'we have some name...'
-        })
     } catch (error) {
 
 
@@ -53,41 +210,64 @@ exports.CreateNewRes = async (req, res) => {
 }
 
 
-// cart info id
-// get
-exports.CartInfoIDUser = async (req, res) => {
-    try {
-        let cartitems = await CartInfoModel.findOne({ _id: req.params.id })
-
-        if (cartitems) {
-            return res.status(200).json(cartitems)
-        }
 
 
-        else return res.status(404).json('not')
 
-    } catch (error) {
-        return res.status(404).json({ message: error.message })
-    }
-}
-
-// views all restarange // rating max 8
-// GET 
+// GET  /testing error loading
+// pagation  
 exports.ShowsAll = async (req, res) => {
+    const pageSize = Number(6)
+    const page = Number(req.query.pageNumber) || 1
+    let count = await CartInfoModel.count({
+
+        location: {
+            $nearSphere: {
+                $geometry: {
+                    type: 'Point',
+                    coordinates: [req.params.lat, req.params.long]
+                },
+                $maxDistance: 10 * 1609.34
+            }
+        },
+        productType: req.params.productType
+    })
+    const result = {}
+    if (page < count) {
+        result.next = {
+            page: page + 1,
+        }
+
+    }
+
     try {
-        let cartitems = await CartInfoModel.find(
-            {
-                "addressinfo.city": req.params.city,
-                productType: req.params.productType,
-                firDlevery: false
 
-            }).populate({ path: 'foodType', select: '_id foodType' })
+
+        let cartitems = await CartInfoModel.find({
+            location: {
+                $nearSphere: {
+                    $geometry: {
+                        type: 'Point',
+                        coordinates: [req.params.lat, req.params.long]
+                    },
+                    $maxDistance: 10 * 1609.34
+                }
+            },
+            productType: req.params.productType
+
+        })
+            .populate({ path: 'foodtype', select: '_id foodType' })
+            .limit(pageSize)
+            .skip(pageSize * (page - 1))
+
+
         if (cartitems) {
-
-            return res.status(200).json(cartitems)
-
-
-            return
+            return res.status(200).json({
+                LengthProduct: count,
+                result,
+                pageNumber: page,
+                pages: Math.ceil(count / pageSize),
+                data: cartitems,
+            })
         }
 
 
@@ -100,21 +280,14 @@ exports.ShowsAll = async (req, res) => {
 
 
 
-// cartinfo id
-// testing requires  styles .
-// // /setTimeout(() => {
-//     res.status(200).json(cartinfo)
-// }, 5000);
+// cartinfo username one page
+// testing loading and error ...... 
 exports.CartinfoId = async (req, res) => {
     try {
 
         let cartinfo = await CartInfoModel.findOne({ username: req.params.username })
 
-
-        if (cartinfo) return res.status(200).json(cartinfo)
-
-
-        return res.status(200).json({ message: 'we have not cart info id.' })
+        return res.status(200).json(cartinfo)
 
     } catch (error) {
 
@@ -180,11 +353,30 @@ exports.CartInfoAddComment = async (req, res) => {
 
 
 
-// cart info all fri leverans 
+// cart info all free leverans 
 // GET 
 exports.FreeDlevery = async (req, res) => {
+    // if (!Object.isValid(req.params.city)) return res.status(404).json({ message: 'id' })
     try {
-        let newCart = await CartInfoModel.find({ freeDelvery: true })
+        let newCart = await CartInfoModel.find(
+            {
+                location: {
+                    $nearSphere: {
+                        $geometry: {
+                            type: 'Point',
+                            coordinates: [req.params.lat, req.params.long]
+                        },
+                        $maxDistance: 10 * 1609.34
+                    }
+                },
+                freeDelvery: true
+            },
+
+
+        )
+            .limit(7)
+
+
         if (newCart) return res.status(200).json(newCart)
 
         return res.status(200).json('not')
@@ -200,16 +392,25 @@ exports.FreeDlevery = async (req, res) => {
 // max 8
 // get 
 //.sort({ createdAt: -1 }).limit(3)
-exports.NewRestranges = async (req, res) => {
+exports.BestRestrant = async (req, res) => {
     try {
         let newcart = await CartInfoModel.find(
             {
-                "addressinfo.city": req.params.city,
-                productType: req.params.productType
+                location: {
+                    $nearSphere: {
+                        $geometry: {
+                            type: 'Point',
+                            coordinates: [req.params.lat, req.params.long]
+                        },
+                        $maxDistance: 10 * 1609.34
+                    }
+                },
             }
-        ).sort({ createdAt: -1 }).limit(8)
-        if (newcart) return res.status(200).json(newcart)
-        return res.status(200).json('not')
+        ).sort({ rating: -1 }).limit(6)
+
+        if (newcart?.length >= 1) return res.status(200).json(newcart)
+
+        return res.status(200).json(newcart)
     } catch (error) {
         return res.status(404).json({
             message: error.message
@@ -221,29 +422,6 @@ exports.NewRestranges = async (req, res) => {
 
 
 
-// filter restrange with category
-// get //
-exports.FilterRestranges = async (req, res) => {
-    try {
-        let newCart = await CartInfoModel.find(
-            {
-                "addressinfo.city": req.params.city,
-                productType: req.params.productType,
-            })
-            .populate({ path: 'foodType', select: '_id foodType' })
-
-
-
-        if (newCart) return res.status(200).json(newCart)
-        return res.status(200).json('not')
-
-    } catch (error) {
-
-        return res.status(404).json({
-            message: error.message
-        })
-    }
-}
 
 
 // update CartInfo 
@@ -253,11 +431,12 @@ exports.UpdateCartInfo = async (req, res) => {
 
     if (!Object.isValid(req.params.id)) return res.status(404).json('id....')
     try {
-        let cartupdate = await CartInfoModel.updateOne({ _id: req.params.id })
+        let cartupdate = await CartInfoModel.findOne({ _id: req.params.id })
 
         if (req.body.image?.toString() !== cartupdate.image?.toString()) {
             const Slicet = cartupdate.image?.slice(1)
-            RemoveImage(Slicet)
+            console.log('yes......', Slicet)
+            UpdateImage.RemoveImage(Slicet)
             await CartInfoModel.updateOne({ _id: req.params.id }, { $set: req.body })
             return res.status(201).json('Updated.....')
 
@@ -276,18 +455,39 @@ exports.UpdateCartInfo = async (req, res) => {
 
 
 
-const RemoveImage = (Slicet) => {
-
+// testing///
+exports.Location = async (req, res) => {
     try {
-        fs.unlinkSync(Slicet)
-        return
+
+        // const clientLong = req.body.long;
+        // const clientLat = req.body.lat;
+        // // const restaurantID = req.resID;
+        // // const resData = await CartInfoModel.findById(restaurantID); // if you wantfor one
+        // await CartInfoModel.find({location:})
+
     } catch (error) {
-        return
+        console.log(error);
     }
-
-
 }
 
+
+// // filter category
+// // get
+// router.get('/cartinfo/restrang/:city/:productType/', CartInfoController.FilterRestranges)
+
+// testing code
+// setTimeout(()=>{
+// },5000)
+//testing 
+
+
+
+
+
+
+
+
+    // if (username.startsWith(" ") || username.endsWith(" ")) return res.status(404).json({ message: 'remove ' })
 
 
 
@@ -347,3 +547,51 @@ const RemoveImage = (Slicet) => {
         //
         //
         // }
+
+
+        // testing code
+// setTimeout(()=>{
+// },5000)
+//testing 
+// exports.testingCart = async (req, res) => {
+//     try {
+
+//         const testing = await CartInfoModel.aggregate([
+//             { $match: { username: 'testing usernamed' } },
+//             { $project: { _id: 1, username: 1 } },
+//             { $limit: 3 }
+//             // { $match: { _id: 0, username: 'testing usernamed'} },
+//             // { $limit : 3 }
+//         ])
+
+//         return res.status(200).json(testing)
+//     } catch (error) {
+//         return res.status(404).json({
+//             message: error.message
+//         })
+//     }
+// }
+
+// testing code
+// setTimeout(()=>{
+// },5000)
+//testing 
+// exports.testingCart = async (req, res) => {
+//     try {
+
+//         const testing = await CartInfoModel.aggregate([
+//             { $match: { username: 'testing usernamed' } },
+//             { $project: { _id: 1, username: 1 } },
+//             { $limit: 3 }
+//             // { $match: { _id: 0, username: 'testing usernamed'} },
+//             // { $limit : 3 }
+//         ])
+
+//         return res.status(200).json(testing)
+//     } catch (error) {
+//         return res.status(404).json({
+//             message: error.message
+//         })
+//     }
+// }
+

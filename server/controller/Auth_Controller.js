@@ -6,6 +6,67 @@ const { main } = require('../Jwt/smtp')
 
 
 
+
+// POST
+// Send data to Email
+exports.DriverWork = async (req, res) => {
+
+    try {
+
+        if (req.body) {
+            await main(req.body)
+            return res.status(200).json({ message: req.body })
+
+        }
+
+        return res.status(200).json('Empty')
+
+
+    } catch (error) {
+
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+}
+
+
+
+// add account bank
+exports.AccountAdd = async (req, res) => {
+
+    const {
+        accountnumber,
+        accountnowner,
+        iban,
+
+    } = req.body
+
+    try {
+        let user = await Auth.findOne({ _id: req.user._id })
+        if (user) {
+
+            user.accountB.accountnumber = accountnumber
+            user.accountB.accountnowner = accountnowner
+            user.accountB.iban = iban
+
+            const newSaveUser = await user.save()
+            return res.status(200).json({ message: 'success' })
+        } else {
+            return res.status(404).json({ message: 'not' })
+        }
+    } catch (error) {
+
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+}
+
+
+
+
+
 // checked user is here
 // POST // 
 exports.CheckEdUser = async (req, res) => {
@@ -161,6 +222,10 @@ exports.login = async (req, res) => {
                     isAdmin: user.isAdmin,
                     Adress: user.Adress,
                     driverlogin: user.driverlogin,
+                    accountB: user?.accountB,
+                    restaurantid: user?.restaurantid,
+                    cartinfo: user.cartinfo,
+                    driverStatus : user.driverStatus
                 },
 
             })
@@ -218,7 +283,9 @@ exports.singup = async (req, res) => {
                 telephone: newUser.telephone,
                 email: newUser.email,
                 isAdmin: newUser.isAdmin,
-                Adress: newUser.Adress
+                Adress: newUser.Adress,
+                accountB: newUser?.accountB,
+                restaurantid: newUser?.restaurantid
             }
 
         })
@@ -253,7 +320,9 @@ exports.GoogleLogin = async (req, res) => {
                     firstname: user.firstname,
                     lastname: user.lastname,
                     email: user.email,
-                    Adress: user.Adress
+                    Adress: user.Adress,
+                    accountB: user?.accountB,
+                    cartinfo: user.cartinfo
                 }
             })
         } else {
@@ -551,3 +620,23 @@ exports.RemoveUserid = async (req, res) => {
 
 
 
+
+
+// user change status
+exports.driverChangeStatus = async (req, res) => {
+    try {
+
+        let user = await Auth.updateOne({ _id: req.user._id }, { $set: req.body })
+        if (user) return res.status(200).json({
+            message: 'sussfully',
+            data: user
+        })
+
+        return res.status(404).json({ message: 'error' })
+    } catch (error) {
+
+        return res.status(400).json({
+            message: error.message
+        })
+    }
+}

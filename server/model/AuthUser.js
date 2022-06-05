@@ -4,8 +4,8 @@ const mongoose = require('mongoose')
 
 const AuthSchema = mongoose.Schema({
 
-    firstname: { type: String,  },
-    lastname: { type: String,  },
+    firstname: { type: String, },
+    lastname: { type: String, },
 
     email: { type: String, required: true },
     password: { type: String },
@@ -16,7 +16,7 @@ const AuthSchema = mongoose.Schema({
         required: true,
         default: false,
     },
-    telephone: { type: Number,  },
+    telephone: { type: String, },
     Adress: {
 
         addres: { type: String },
@@ -27,7 +27,11 @@ const AuthSchema = mongoose.Schema({
 
     },
 
-
+    restaurantid: {
+        type: Boolean,
+        required: true,
+        default: false,
+    },
 
     driverlogin: {
         type: Boolean,
@@ -35,10 +39,25 @@ const AuthSchema = mongoose.Schema({
         default: false,
     },
 
+    driverStatus :{
+
+     type : String,
+
+    },
+
     likeforget: {
         type: String,
         default: ''
-    }
+    },
+    accountB: {
+        accountnumber: { type: String, },
+        accountnowner: { type: String, },
+        iban: { type: String, }
+    },
+    cartinfo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Cartinfo',
+    },
 },
     {
         timestamps: true

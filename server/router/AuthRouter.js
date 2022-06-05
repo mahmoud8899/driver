@@ -5,6 +5,10 @@ const Admin = require('../Jwt/isAdmin')
 
 
 
+
+// post driver work
+router.post('/user/work/', AuthController.DriverWork)
+
 // user Change..
 router.post('/user/change/:id/',   AuthController.changePassword)
 router.put('/user/forgetpassword/', AuthController.forgetPassword)
@@ -21,6 +25,8 @@ router.post('/user/singup/googl/', AuthController.GoogleLogin)
 
 // put add telefon number
 router.put('/user/telefonnumber/', verify, AuthController.AddTelefonNumber)
+
+router.put('/user/change/driver/', verify, AuthController.driverChangeStatus)
 
 // list user
 router.get('/user/lists/', verify, Admin,AuthController.ListUser)
@@ -46,6 +52,8 @@ router.put('/user/update/username/', verify, AuthController.ChangeUserName)
 // www.mahmoud.com/user/checkuser/
 // GET 
 router.post('/user/checkuser/', AuthController.CheckEdUser)
-
+// add account bank
+// put
+router.put('/user/addcount/user/', verify, AuthController.AccountAdd)
 
 module.exports = router

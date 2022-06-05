@@ -1,22 +1,50 @@
 const OrderModel = require('../model/Order')
 const schedule = require('node-schedule')
 const DriverModel = require('../model/DriverModel')
+const Auth = require('../model/AuthUser')
 
+// check availb
+// driver :'utkörning'
+const CheckInOrder = async (pageNumber) => {
+    const pageSize = Number(5)
+    const page = Number(pageNumber) || 1
+    let count = await OrderModel.count(
+        {
+            OrderStatus: 'processing'
+        })
+    const result = {}
+    if (page < count) {
+        result.next = {
+            page: page + 1,
+        }
 
-const CheckInOrder = async () => {
-
+    }
 
     try {
-        let order = await OrderModel.find({ OrderStatus: 'processing' })
+        let order = await OrderModel.find({ OrderStatus: 'processing', })
             .select('-paymentMethod -client -discountCode -itemsPrics')
             .populate({
                 path: 'orderitems.product',
                 select: '_id name info'
 
             })
+            .populate({
+                path: 'cartinfo',
+                select: '_id username addressinfo location'
+            })
+            .limit(pageSize)
+            .skip(pageSize * (page - 1))
+
         if (order) {
 
-            return { order }
+            return {
+                LengthProduct: count,
+                result,
+                pageNumber: page,
+                pages: Math.ceil(count / pageSize),
+                data: order,
+
+            }
         } else {
 
             return ['we dont have availbol orders']
@@ -31,9 +59,11 @@ const CheckInOrder = async () => {
 }
 
 
+
+
 // take driver order 
 // put 
-const TakeOrder = async (orderid, userid) => {
+const TakeOrder = async (orderid, userid, changeStatus, createDriver) => {
 
 
     try {
@@ -42,19 +72,13 @@ const TakeOrder = async (orderid, userid) => {
         let order = await OrderModel.findById({ _id: orderid })
 
         if (order) {
-            order.OrderStatus = 'your order on the way'
+            order.OrderStatus = changeStatus
             order.drivertake = userid
-         
+
             let newSave = await order.save()
-
-            // driver order... 
-            DriverOder(newSave, userid)
-            // after on hour deliver...
-            let mJob = schedule.scheduleJob('*0 */1 * * *', function () {
-                AfteranHour(newSave)
-                mJob.cancel()
-            })
-
+            // driver order... create one driver 
+            createDriver && DriverOder(newSave, userid)
+            driverChangeStatus(userid, changeStatus)
             return ['Update Order']
 
 
@@ -69,30 +93,7 @@ const TakeOrder = async (orderid, userid) => {
 }
 
 
-// delivery order....
-const AfteranHour = async (data) => {
 
-    try {
-        let order = await OrderModel.findById({ _id: data._id })
-        if (order) {
-
-            order.OrderStatus = 'delivered'
-            order.isDelivered = 'true'
-            await order.save()
-
-
-        } else {
-
-        }
-    } catch (error) {
-
-
-        return { 'error': error }
-
-    }
-
-
-}
 
 // create driver order 
 const DriverOder = async (data, userid) => {
@@ -105,6 +106,8 @@ const DriverOder = async (data, userid) => {
             order: data._id
         })
 
+        console.log('create new order with driver')
+
         await newDriver.save()
     } catch (error) {
 
@@ -113,6 +116,19 @@ const DriverOder = async (data, userid) => {
 
 }
 
+
+// // user change status
+const driverChangeStatus = async (userId, changeStatus) => {
+    try {
+        await Auth.updateOne({ _id: userId }, { $set: { driverStatus: changeStatus } })
+
+    } catch (error) {
+
+        return {
+            error: error.message
+        }
+    }
+}
 
 
 // views all orders to driver
@@ -148,15 +164,15 @@ const CheckInTheWay = async (userId) => {
 
     try {
         let order = await OrderModel.find({ OrderStatus: 'your order on the way', drivertake: userId })
-        .select('-paymentMethod -client -discountCode -itemsPrics')
-        .populate({
-            path: 'orderitems.product',
-            select: '_id name info'
+            .select('-paymentMethod -client -discountCode -itemsPrics')
+            .populate({
+                path: 'orderitems.product',
+                select: '_id name info'
 
-        })
+            })
         if (order) {
 
-            return {order}
+            return { order }
         } else {
 
             return ['error']
@@ -208,6 +224,61 @@ const Concalcaltion = async (dataid, userid) => {
 
 
 
+// order status to Driver
+const ChangeOrderStatus = async (userId, Status) => {
+    try {
+        let driver = await DriverModel.find({ user: userId })
+            .populate({
+                path: 'order',
+                // select: '_id driverPric   isDelivered shippingAdress.yourAddress shippingAdress.zipCode OrderStatus orderitems',
+                populate: [
+                    { path: 'orderitems.product', select: '_id name prices' },
+                    { path: 'cartinfo', select: '_id username location addressinfo' }
+                ]
+
+            }).populate({ path: 'user', select: '_id username email' })
+
+        const FilterSatatusDelivery = driver.filter((x) => x.order.OrderStatus === Status)
+
+        //  console.log('in....', FilterSatatusDelivery)
+
+
+        if (FilterSatatusDelivery.length === Number(0)) {
+
+            return 'Empty'
+        }
+
+        return { FilterSatatusDelivery }
+
+
+
+
+
+
+
+    } catch (error) {
+
+        return {
+            'message': error.message
+        }
+    }
+}
+
+
+
+// order checking is available
+const OrderCheckingIsAvailable = async (orderId) => {
+    try {
+        let order = await OrderModel.findById({ _id: orderId })
+        if (order.OrderStatus === 'processing') return 'processing'
+        if (order.OrderStatus === 'confirm') return 'confirm'
+        if (order.OrderStatus === 'your order on the way') 'your order on the way'
+        if (order.OrderStatus === 'delivery') return 'delivery'
+        if (order.OrderStatus === 'cancel') return 'cancel'
+    } catch (error) {
+        return { 'message': error.message }
+    }
+}
 
 
 module.exports = {
@@ -216,4 +287,13 @@ module.exports = {
     ViewsAllDriversOrder,
     CheckInTheWay,
     Concalcaltion,
+    ChangeOrderStatus,
+    OrderCheckingIsAvailable
+
 }
+
+
+
+
+
+

@@ -29,11 +29,22 @@ const CartInfoModelSchema = mongoose.Schema({
             type: String,
         },
         telefon: {
-            type: Number,
+            type: String,
         },
         website: {
             type: String,
         }
+    },
+    location:{
+        type: {
+            type: String, // Don't do `{ location: { type: String } }`
+            enum: ['Point'], // 'location.type' must be 'Point'
+            required: true
+          },
+          coordinates: {
+            type: [Number], // long, lat
+            required: true
+          }
     },
     description: {
         type: String,
@@ -89,12 +100,14 @@ const CartInfoModelSchema = mongoose.Schema({
         default: false
     },
 
-    foodType: {
+
+    foodtype : {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'foodtype',
         required: true
-    },
+    }
 
+    
 
 },
     {
@@ -103,7 +116,7 @@ const CartInfoModelSchema = mongoose.Schema({
 )
 
 
-
+CartInfoModelSchema.index({location:"2dsphere" });
 
 
 

@@ -1,7 +1,7 @@
 const router = require('express').Router()
 const multer = require('multer')
 const path = require('path')
-const fs  = require('fs')
+const fs = require('fs')
 const storage = multer.diskStorage({
     destination(req, file, cb) {
         cb(null, 'uploads/')
@@ -38,22 +38,26 @@ const upload = multer({
 
 
 
-router.post(`/uploading/`,  upload.single('image'), (req,res)=>{
+
+router.post(`/uploading/`, upload.single('image'), (req, res) => {
     res.send(`/${req.file.path}`)
 })
 
+// image delete 
+router.delete('/mahmoud/api/:id', function (req, res) {
 
-router.delete('/:id/', function(req,res){
+   
+  
 
-    if(!req.params.id) return res.status(404).json({message :'not image'})
-    try{
+    try {
+        console.log(req.params.id)
         fs.unlinkSync(`uploads/${req.params.id}`)
-        return res.status(200).send('Successfully! Image has been Deleted');
+        return res.status(200).json({message : 'Successfully! Image has been Deleted'});
 
-    }catch(error){
+    } catch (error) {
 
         return res.status(404).json({
-            message : error.message
+            message: error.message
         })
     }
 })

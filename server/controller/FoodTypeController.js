@@ -7,18 +7,18 @@ const FoodTypeModel = require('../model/FoodTypesModel')
 // post 
 exports.CreateFoodTypes = async (req, res) => {
 
-    const { foodType ,image } = req.body
+    const { foodType, image } = req.body
 
-    if(foodType.startsWith(" ") ||  foodType.endsWith(" ")) return res.status(404).json({message : 'remove '})
+    //  if(foodType.startsWith(" ") ||  foodType.endsWith(" ")) return res.status(404).json({message : 'remove '})
 
     try {
-        let newfood = await FoodTypeModel.findOne({ foodType })
-        if (newfood) return res.status(404).json({ message: 'we have somme name' })
+        let newfood = await FoodTypeModel.findOne({ foodType: foodType.toLowerCase().trim() })
+        if (newfood) return res.status(404).json({ message: `Vi har samma namn ${foodType} som du kan välja ` })
 
         newfood = new FoodTypeModel({
-            foodType,
+            foodType: foodType?.toLowerCase().trim(),
             image
-       
+
         })
         let newSave = await newfood.save()
 
@@ -33,7 +33,7 @@ exports.CreateFoodTypes = async (req, res) => {
 
 
 // views all food type 
-// get 
+// get // error loading testing....
 exports.ViewsAllFoodTypes = async (req, res) => {
     try {
         let newfood = await FoodTypeModel.find()

@@ -2,53 +2,6 @@ const router = require('express').Router()
 const ProductControll = require('../controller/Product_Controller')
 const verify = require('../Jwt/Verfiy')
 const Admin = require('../Jwt/isAdmin')
-const multer = require('multer')
-
-const path = require('path')
-
-const storage = multer.diskStorage({
-    destination(req, file, cb) {
-        cb(null, 'uploads/')
-    },
-    filename(req, file, cb) {
-        cb(
-            null,
-            `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-        )
-    },
-})
-
-function checkFileTypes(file, cb) {
-    const filetypes = /jpg|jpeg|png/
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase())
-    const mimetype = filetypes.test(file.mimetype)
-
-    if (extname && mimetype) {
-        cb(null, true)
-    } else {
-        cb('Image Only')
-    }
-}
-
-
-const upload = multer({
-    storage,
-    fileFilter: function (req, file, cb) {
-        checkFileTypes(file, cb)
-    }
-})
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -72,6 +25,7 @@ router.get('/product/product/last/', ProductControll.newProduct)
 
 
 // create post... 
+// POST
 router.post('/product/create/', verify, ProductControll.CreateProduct)
 
 // Restaurant products..
@@ -80,13 +34,11 @@ router.get('/product/cartinfo/:id', ProductControll.CartInDetailProducts)
 
 
 // delete... 
-router.delete('/product/product/:id/', verify, Admin, ProductControll.DeleteProduct)
+router.delete('/product/product/:id/',  ProductControll.DeleteProduct)
 
 
 // update product only admin ....
-router.put('/product/product/edit/:id/', ProductControll.EditProduct)
-
-
+router.put('/product/product/updated/:id/', ProductControll.UpdatedProduct)
 
 // product id// 
 router.get('/product/product/details/:id/', ProductControll.productID)

@@ -1,7 +1,7 @@
 const ProductModel = require('../model/Product')
 const Object = require('mongoose').Types.ObjectId
 const schedule = require('node-schedule')
-
+const UpdateImage = require('./RemoveImage')
 
 
 
@@ -9,21 +9,16 @@ const schedule = require('node-schedule')
 
 
 // All Products.
+// fetch all products and pagantion 
+// GET Public
 exports.RestaurantProductsFilter = async (req, res) => {
 
 
     const pageSize = Number(5)
 
-    const keyword = req.query.keyword ? {
-        name: {
-            $regex: req.query.keyword,
-            $options: 'i',
-        },
-
-    } : {}
     const page = Number(req.query.pageNumber) || 1
 
-    let count = await ProductModel.countDocuments({ cartinfo: req.params.id, ...keyword })
+    let count = await ProductModel.countDocuments({ cartinfo: req.params.id })
 
 
     const result = {}
@@ -37,8 +32,7 @@ exports.RestaurantProductsFilter = async (req, res) => {
 
     try {
 
-        let filterCategory = await ProductModel.find({ cartinfo: req.params.id, ...keyword })
-
+        let filterCategory = await ProductModel.find({ cartinfo: req.params.id })
             .limit(pageSize)
             .skip(pageSize * (page - 1))
         if (req.query.keyword.length === 0) {
@@ -46,7 +40,6 @@ exports.RestaurantProductsFilter = async (req, res) => {
             return res.status(200).json([])
         } else if (filterCategory) {
 
-            //  next()
             return res.status(200).json({
                 LengthProduct: count,
                 result,
@@ -58,13 +51,6 @@ exports.RestaurantProductsFilter = async (req, res) => {
 
 
         }
-
-
-
-
-        //  if (Math.ceil(count / pageSize) < page) return res.status(404).json({ message: 'Not more product..' })
-
-
         return res.status(404).json({ message: 'we do not have Product...' })
 
     } catch (error) {
@@ -80,12 +66,18 @@ exports.RestaurantProductsFilter = async (req, res) => {
 
 // GET
 // Cart info of products.....
+// testing loading and error okej
 exports.CartInDetailProducts = async (req, res) => {
 
     if (!Object.isValid(req.params.id)) return res.status(404).json({ message: `id undefined ${req.params.id}` })
 
+
+
+
     const pageSize = Number(5)
     const page = Number(req.query.pageNumber) || 1
+
+
 
     let count = await ProductModel.countDocuments({ cartinfo: req.params.id })
 
@@ -103,12 +95,11 @@ exports.CartInDetailProducts = async (req, res) => {
         //  if (Math.ceil(count / pageSize) < page) return res.status(404).json({ message: 'Not more product..' })
         let filterCategory = await ProductModel.find({ cartinfo: req.params.id })
             .populate({ path: 'category', select: '_id name' })
-
             .limit(pageSize)
             .skip(pageSize * (page - 1))
-        if (filterCategory) {
+            // .sort({ name: -1 })
 
-            //  next()
+        if (filterCategory) {
             return res.status(200).json({
                 LengthProduct: count,
                 result,
@@ -116,9 +107,8 @@ exports.CartInDetailProducts = async (req, res) => {
                 pages: Math.ceil(count / pageSize),
                 product: filterCategory,
             })
-
-
         }
+
 
         return res.status(404).json({ message: 'we do not have Product...' })
 
@@ -132,92 +122,10 @@ exports.CartInDetailProducts = async (req, res) => {
 
 
 
-// create  discount 
-// POST
-exports.discountPric = async (req, res, next) => {
-
-
-    try {
-
-        let product = await ProductModel.find({})
-
-        if (product) {
-
-
-            let productResult = await ProductModel.updateMany({ discount: req.body.discount })
-
-
-
-            await res.json(productResult)
-            let mJob = schedule.scheduleJob('*/10 * * * *', function () {
-                myBack(req, res, next)
-                mJob.cancel()
-            })
 
 
 
 
-
-        }
-
-    } catch (error) {
-
-        return console.log(error)
-    }
-}
-
-
-
-
-// remove discoun after 2 days...
-const myBack = async (req, res, next) => {
-
-
-
-    //const discountNow = Number(0)
-
-
-    await ProductModel.updateMany({ discount: Number(0) })
-
-    console.log('remove')
-
-
-}
-
-
-
-// create product... 
-// POST
-exports.CreateProduct = async (req, res) => {
-    // if (!Object.isValid(req.params.id)) return res.status(404).json({ message: `not id ${req.params.id}` })
-    const { name, image, prices, countInStock, description, category, cartinfo, popular } = req.body
-    try {
-
-        let product = await ProductModel.create({
-            user: req.user._id,
-            name, image, prices, countInStock, description, category, cartinfo, popular
-        })
-
-        const newProduct = await product.save()
-        return res.status(201).json(newProduct)
-    } catch (error) {
-        return res.status(404).json({ message: error.message })
-    }
-
-}
-
-
-
-// // views all product of cartinfo
-// exports.CartInfoProducts = async (req,res)=>{
-//     try{
-//         let product = await ProductModel.find({cartinfo : req.params.id})
-//         if(product.length >= 1) return res.status(200).json(product)
-//         else res.status(201).json('not')
-//     }catch(error){
-//         return res.status(404).json({message : error.message})
-//     }
-// }
 
 // get top product ///
 // GET 
@@ -291,10 +199,41 @@ exports.cuntAllProduct = async (req, res) => {
 
 
 
+// create product... 
+// POST // Private
+exports.CreateProduct = async (req, res) => {
+
+
+    // if (!Object.isValid(req.params.id)) return res.status(404).json({ message: `not id ${req.params.id}` })
+    const { name, image, prices, countInStock, description, category, cartinfo, popular } = req.body
+    try {
+
+
+        let product = await ProductModel.create({
+            user: req.user._id,
+            name,
+            image,
+            prices,
+            countInStock,
+            description,
+            category,
+            cartinfo,
+            popular
+        })
+
+        const newProduct = await product.save()
+        return res.status(201).json(newProduct)
+    } catch (error) {
+        return res.status(404).json({ message: error.message })
+    }
+
+}
+
+
 
 
 // product delete...
-// DELETE
+// DELETE //Private
 exports.DeleteProduct = async (req, res) => {
 
     if (!Object.isValid(req.params.id)) return res.status(404).json({ message: `id ${req.params.id}` })
@@ -302,11 +241,11 @@ exports.DeleteProduct = async (req, res) => {
         let product = await ProductModel.findById({ _id: req.params.id })
         if (product) {
 
+            const Slicet = product.image?.slice(1)
+            UpdateImage.RemoveImage(Slicet)
             await product.remove()
 
-            return res.status(201).json({
-                message: 'Product Remove..'
-            })
+            return res.status(200).json({ message: 'Product Remove.. mahmoud' })
         } else {
             return res.status(201).json({ message: 'We don t have the same ID' })
         }
@@ -329,15 +268,25 @@ exports.DeleteProduct = async (req, res) => {
 
 
 
-// post Update 
-exports.EditProduct = async (req, res) => {
+// product Update 
+// PUT 
+exports.UpdatedProduct = async (req, res) => {
     if (!Object.isValid(req.params.id)) return res.status(404).json({ message: 'id' })
     try {
 
-        let UpdateProduct = await ProductModel.updateOne({ _id: req.params.id }, { $set: req.body })
+        let UpdateProduct = await ProductModel.findOne({ _id: req.params.id })
 
-        if (UpdateProduct) return res.status(201).json(UpdateProduct)
-        return res.status(404).json({ message: 'not.....' })
+        if (req.body.image && UpdateProduct.image?.toString() !== req.body.image?.toString()) {
+            const Slicet = UpdateProduct.image?.slice(1)
+            console.log('yes......', Slicet)
+            UpdateImage.RemoveImage(Slicet)
+            await ProductModel.updateOne({ _id: req.params.id }, { $set: req.body })
+            return res.status(201).json('Updated..... change image')
+        } else {
+            await ProductModel.updateOne({ _id: req.params.id }, { $set: req.body })
+            return res.status(201).json('updated not image...')
+        }
+
     } catch (error) {
         return res.status(404).json({
             message: error.message
@@ -479,3 +428,77 @@ exports.UpdateCommentReview = async (req, res) => {
     }
 }
 
+
+
+
+
+
+
+
+// create  discount 
+// POST
+exports.discountPric = async (req, res, next) => {
+
+
+    try {
+
+        let product = await ProductModel.find({})
+
+        if (product) {
+
+
+            let productResult = await ProductModel.updateMany({ discount: req.body.discount })
+
+
+
+            await res.json(productResult)
+            let mJob = schedule.scheduleJob('*/10 * * * *', function () {
+                myBack(req, res, next)
+                mJob.cancel()
+            })
+
+
+
+
+
+        }
+
+    } catch (error) {
+
+        return console.log(error)
+    }
+}
+
+
+
+
+// remove discoun after 2 days...
+const myBack = async (req, res, next) => {
+
+
+
+    //const discountNow = Number(0)
+
+
+    await ProductModel.updateMany({ discount: Number(0) })
+
+    console.log('remove')
+
+
+}
+
+
+
+
+
+
+// // views all product of cartinfo
+// exports.CartInfoProducts = async (req,res)=>{
+//     try{
+//         let product = await ProductModel.find({cartinfo : req.params.id})
+//         if(product.length >= 1) return res.status(200).json(product)
+//         else res.status(201).json('not')
+//     }catch(error){
+//         return res.status(404).json({message : error.message})
+//     }
+// }
